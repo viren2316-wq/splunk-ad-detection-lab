@@ -1,0 +1,19 @@
+id: DET-002
+name: PowerShell Download Cradle
+mitre_attack:
+  tactic: Execution
+  technique_id: T1059.001
+  technique_name: "PowerShell"
+splunk_query: |
+  index=sysmon EventCode=1 Image="*\\powershell.exe"
+  | where match(CommandLine, "(?i)(IEX|Invoke-Expression|DownloadString|WebClient|Net\.WebClient)")
+  | stats count by Computer, User, CommandLine, ParentImage
+data_sources:
+  - index: sysmon
+    eventcode: 1
+false_positives:
+  - Legitimate PowerShell scripts using WebClient
+testing:
+  atomic_test: "powershell -c (New-Object Net.WebClient).DownloadString('http://test.com')"
+  result: DETECTED
+status: production
