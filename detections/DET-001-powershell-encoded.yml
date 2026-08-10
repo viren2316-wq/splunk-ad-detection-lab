@@ -1,0 +1,19 @@
+id: DET-001
+name: PowerShell Encoded Command Execution
+mitre_attack:
+  tactic: Execution
+  technique_id: T1059.001
+  technique_name: "PowerShell"
+splunk_query: |
+  index=sysmon EventCode=1 Image="*\\powershell.exe"
+  | where match(CommandLine, "(?i)(-enc\s|-encodedcommand\s|-ec\s)")
+  | stats count by Computer, User, CommandLine, ParentImage
+data_sources:
+  - index: sysmon
+    eventcode: 1
+false_positives:
+  - Legitimate software using encoded commands
+testing:
+  atomic_test: "Invoke-AtomicTest T1059.001 -TestNumbers 1"
+  result: DETECTED
+status: production
