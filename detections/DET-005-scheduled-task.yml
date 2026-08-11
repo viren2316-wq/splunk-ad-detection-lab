@@ -1,1 +1,30 @@
 id: DET-005
+name: Scheduled Task Created Outside Microsoft Namespace
+description: >
+  Detects creation of scheduled tasks outside the Microsoft namespace,
+  a common persistence technique used by attackers to survive reboots
+  and maintain access to compromised systems.
+mitre_attack:
+  tactic: Persistence
+  technique_id: T1053.005
+  technique_name: "Scheduled Task/Job: Scheduled Task"
+data_sources:
+  - index: windows_security
+    eventcode: 4698
+    sourcetype: WinEventLog:Security
+splunk_query: |
+  index=windows_security EventCode=4698
+  | rex field=_raw "Task Name:\s+(?<TaskName>[^\r\n]+)"
+  | rex field=_raw "User Context:\s+(?<TaskUser>[^\r\n]+)"
+  | where NOT match(TaskName, "(?i)(\\\\microsoft\\\\|\\\\windows\\\\)")
+  | stats count by Computer, TaskUser, TaskName
+false_positives:
+  - Legitimate third-party software creating scheduled tasks
+tuning_notes: >
+  Allowlist known software task names.
+  Add NOT TaskName="*\\YourSoftware\\*" as needed.
+testing:
+  command: "schtasks /create /tn Backdoor /tr cmd.exe /sc minute /mo 1"
+  result: DETECTED
+  fp_rate: Medium
+status: production
