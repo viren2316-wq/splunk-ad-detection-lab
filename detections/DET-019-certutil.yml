@@ -1,1 +1,29 @@
 id: DET-019
+name: certutil Used as Downloader
+description: >
+  Detects abuse of certutil.exe to download files from the internet,
+  a common Living-off-the-Land (LOLBin) technique used by attackers
+  to bypass web filtering and download malicious payloads.
+mitre_attack:
+  tactic: Command and Control
+  technique_id: T1105
+  technique_name: "Ingress Tool Transfer"
+data_sources:
+  - index: sysmon
+    eventcode: 1
+    sourcetype: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+splunk_query: |
+  index=sysmon EventCode=1 Image="*\\certutil.exe"
+  | where match(CommandLine, "(?i)(-urlcache|-decode|-encode|-f\s+http|-split)")
+  | stats count by Computer, User, CommandLine, ParentImage
+false_positives:
+  - Legitimate certificate management operations
+  - PKI administrators using certutil for certificate tasks
+tuning_notes: >
+  Focus on CommandLine containing -urlcache, -split, or HTTP URLs.
+  Legitimate certutil usage rarely involves downloading from internet URLs.
+testing:
+  command: "certutil -encode C:\\Windows\\System32\\drivers\\etc\\hosts C:\\temp\\hosts.b64"
+  result: DETECTED
+  fp_rate: Low
+status: production
