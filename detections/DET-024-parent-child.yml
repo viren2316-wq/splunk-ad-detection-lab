@@ -1,1 +1,30 @@
 id: DET-024
+name: Suspicious Parent-Child Process Relationship
+description: >
+  Detects suspicious parent-child process relationships where unexpected
+  processes spawn shell interpreters. Commonly seen when Office macros,
+  PDF readers, or other applications are exploited to execute malicious code.
+mitre_attack:
+  tactic: Execution
+  technique_id: T1059
+  technique_name: "Command and Scripting Interpreter"
+data_sources:
+  - index: sysmon
+    eventcode: 1
+    sourcetype: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+splunk_query: |
+  index=sysmon EventCode=1
+  | where match(ParentImage, "(?i)(winword|excel|powerpnt|outlook|AcroRd32|powershell)\.exe")
+    AND match(Image, "(?i)(cmd|powershell|wscript|cscript|mshta|certutil)\.exe")
+  | stats count by Computer, User, ParentImage, Image, CommandLine
+false_positives:
+  - Legitimate macros in enterprise environments
+  - Authorized automation scripts
+tuning_notes: >
+  Tune by allowlisting known-good parent-child combinations.
+  High confidence alert when Office apps spawn cmd.exe or powershell.exe.
+testing:
+  command: "Start-Process cmd.exe -ArgumentList /c whoami"
+  result: DETECTED
+  fp_rate: Low
+status: production
