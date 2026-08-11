@@ -1,1 +1,31 @@
 id: DET-016
+name: WMI Command Execution
+description: >
+  Detects processes spawned by WmiPrvSE.exe, indicating remote or local
+  WMI-based command execution. Attackers use WMI for lateral movement,
+  persistence, and execution while evading traditional detection methods.
+mitre_attack:
+  tactic: Execution
+  technique_id: T1047
+  technique_name: "Windows Management Instrumentation"
+data_sources:
+  - index: sysmon
+    eventcode: 1
+    sourcetype: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+splunk_query: |
+  index=sysmon EventCode=1 ParentImage="*\\WmiPrvSE.exe"
+  | where NOT (Image IN (
+      "*\\svchost.exe","*\\msiexec.exe","*\\WerFault.exe"))
+  | stats count by Image, CommandLine, Computer, User
+  | sort -count
+false_positives:
+  - Legitimate WMI-based management tools
+  - System monitoring software using WMI
+tuning_notes: >
+  Allowlist known management tool processes by Image.
+  Focus on cmd.exe, powershell.exe spawned by WmiPrvSE.exe.
+testing:
+  command: "wmic process call create cmd.exe /c whoami"
+  result: DETECTED
+  fp_rate: Low
+status: production
