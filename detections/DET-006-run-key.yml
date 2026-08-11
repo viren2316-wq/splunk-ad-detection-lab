@@ -1,1 +1,31 @@
 id: DET-006
+name: Registry Run Key Persistence
+description: >
+  Detects modifications to registry Run and RunOnce keys, commonly used
+  by attackers to establish persistence and execute malware on system startup.
+mitre_attack:
+  tactic: Persistence
+  technique_id: T1547.001
+  technique_name: "Boot or Logon Autostart Execution: Registry Run Keys"
+data_sources:
+  - index: sysmon
+    eventcode: 13
+    sourcetype: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+splunk_query: |
+  index=sysmon EventCode=13
+  (TargetObject="*\\CurrentVersion\\Run\\*" OR
+   TargetObject="*\\CurrentVersion\\RunOnce\\*")
+  | where NOT (Image IN (
+      "*\\msiexec.exe","*\\setup.exe",
+      "*\\TrustedInstaller.exe","*\\MsMpEng.exe"))
+  | stats count by Image, TargetObject, Details, Computer
+false_positives:
+  - Legitimate software installers adding startup entries
+tuning_notes: >
+  Allowlist known installer processes by Image.
+  Monitor for unusual Details values pointing to temp directories.
+testing:
+  command: "reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v Backdoor /t REG_SZ /d cmd.exe /f"
+  result: DETECTED
+  fp_rate: Medium
+status: production
