@@ -1,1 +1,29 @@
 id: DET-015
+name: Domain Account Enumeration
+description: >
+  Detects reconnaissance commands used to enumerate domain users and groups,
+  commonly performed by attackers after initial access to understand the
+  Active Directory environment and identify high-value targets.
+mitre_attack:
+  tactic: Discovery
+  technique_id: T1087.002
+  technique_name: "Account Discovery: Domain Account"
+data_sources:
+  - index: sysmon
+    eventcode: 1
+    sourcetype: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+splunk_query: |
+  index=sysmon EventCode=1
+  | where match(CommandLine, "(?i)(net\s+user\s+/domain|net\s+group\s+/domain|Get-ADUser|Get-ADGroup|nltest|dsquery)")
+  | stats count by Computer, User, CommandLine, ParentImage
+false_positives:
+  - IT administrators performing legitimate AD queries
+  - Monitoring and inventory tools
+tuning_notes: >
+  Allowlist known admin workstations by Computer name.
+  Correlate with other discovery events for higher confidence.
+testing:
+  command: "net user /domain"
+  result: DETECTED
+  fp_rate: Medium
+status: production
