@@ -1,1 +1,32 @@
 id: DET-010
+name: Windows Event Log Cleared
+description: >
+  Detects clearing of Windows Security or System event logs, a common
+  defense evasion technique used by attackers to destroy forensic evidence
+  and cover their tracks after a compromise.
+mitre_attack:
+  tactic: Defense Evasion
+  technique_id: T1070.001
+  technique_name: "Indicator Removal: Clear Windows Event Logs"
+data_sources:
+  - index: windows_security
+    eventcode: 1102
+    sourcetype: WinEventLog:Security
+  - index: windows_security
+    eventcode: 104
+    sourcetype: WinEventLog:System
+splunk_query: |
+  index=windows_security (EventCode=1102 OR EventCode=104)
+  | eval LogCleared=if(EventCode=1102,
+      "Security Log Cleared", "System Log Cleared")
+  | stats count by Computer, host, LogCleared
+false_positives:
+  - Authorized administrators clearing logs during maintenance
+tuning_notes: >
+  No tuning needed — any log clear event should be investigated.
+  Consider alerting immediately with high priority.
+testing:
+  command: "wevtutil cl System"
+  result: DETECTED
+  fp_rate: Very Low
+status: production
