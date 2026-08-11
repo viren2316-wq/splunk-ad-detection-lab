@@ -1,1 +1,29 @@
 id: DET-023
+name: Shadow Copy and Volume Snapshot Abuse
+description: >
+  Detects use of vssadmin, ntdsutil, or diskshadow to access or manipulate
+  volume shadow copies, commonly used by attackers to extract NTDS.dit
+  and obtain domain credential hashes without directly touching LSASS.
+mitre_attack:
+  tactic: Credential Access
+  technique_id: T1003.003
+  technique_name: "OS Credential Dumping: NTDS"
+data_sources:
+  - index: sysmon
+    eventcode: 1
+    sourcetype: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+splunk_query: |
+  index=sysmon EventCode=1
+  | where match(Image, "(?i)(vssadmin|ntdsutil|diskshadow|wbadmin)\.exe")
+  | stats count by Computer, User, Image, CommandLine, ParentImage
+false_positives:
+  - Legitimate backup software using vssadmin
+  - System administrators managing shadow copies
+tuning_notes: >
+  Allowlist known backup software by ParentImage or Image path.
+  Flag any usage outside scheduled backup windows as high priority.
+testing:
+  command: "vssadmin list volumes"
+  result: DETECTED
+  fp_rate: Medium
+status: production
