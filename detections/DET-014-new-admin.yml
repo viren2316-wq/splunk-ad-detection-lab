@@ -1,1 +1,34 @@
 id: DET-014
+name: New Local Administrator Account Created
+description: >
+  Detects creation of new local user accounts and their addition to
+  the Administrators group, a common persistence technique used by
+  attackers to maintain privileged access to compromised systems.
+mitre_attack:
+  tactic: Persistence
+  technique_id: T1136.001
+  technique_name: "Create Account: Local Account"
+data_sources:
+  - index: windows_security
+    eventcode: 4720
+    sourcetype: WinEventLog:Security
+  - index: windows_security
+    eventcode: 4732
+    sourcetype: WinEventLog:Security
+splunk_query: |
+  index=windows_security (EventCode=4720 OR EventCode=4732)
+  | eval Action=if(EventCode=4720,
+      "Account Created", "Added to Privileged Group")
+  | stats values(Action) as Actions
+      by SubjectUserName, TargetUserName, Computer
+false_positives:
+  - IT administrators creating legitimate accounts
+  - Automated provisioning systems
+tuning_notes: >
+  Correlate EventCode 4720 and 4732 together — creation followed
+  immediately by group addition is high confidence malicious activity.
+testing:
+  command: "net user hacker Lab@2024! /add && net localgroup administrators hacker /add"
+  result: DETECTED
+  fp_rate: Low
+status: production
