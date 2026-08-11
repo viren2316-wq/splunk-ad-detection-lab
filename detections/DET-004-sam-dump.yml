@@ -1,1 +1,26 @@
 id: DET-004
+name: SAM Registry Dump
+description: >
+  Detects attempts to dump the SAM, SYSTEM, or SECURITY registry hives,
+  which contain password hashes that can be cracked offline by attackers.
+mitre_attack:
+  tactic: Credential Access
+  technique_id: T1003.002
+  technique_name: "OS Credential Dumping: Security Account Manager"
+data_sources:
+  - index: sysmon
+    eventcode: 1
+    sourcetype: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+splunk_query: |
+  index=sysmon EventCode=1
+  | where match(CommandLine, "(?i)(reg\s+(save|export).*(\\\\sam|\\\\system|\\\\security))")
+  | stats count by Computer, User, CommandLine, ParentImage
+false_positives:
+  - Legitimate backup software exporting registry hives
+tuning_notes: >
+  Allowlist known backup tools by ParentImage or Image.
+testing:
+  command: "reg save HKLM\\SAM C:\\temp\\sam.hive"
+  result: DETECTED
+  fp_rate: Low
+status: production
