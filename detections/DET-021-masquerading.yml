@@ -1,1 +1,27 @@
 id: DET-021
+name: Process Masquerading - Renamed System Binary
+description: >
+  Detects execution of system binaries that have been renamed to evade
+  detection. Attackers copy legitimate Windows executables and rename them
+  to blend in with normal system activity while retaining their functionality.
+mitre_attack:
+  tactic: Defense Evasion
+  technique_id: T1036.003
+  technique_name: "Masquerading: Rename System Utilities"
+data_sources:
+  - index: sysmon
+    eventcode: 1
+    sourcetype: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+splunk_query: |
+  index=sysmon EventCode=1 Image="*\\temp\\svchost.exe"
+  | stats count by Computer, User, Image, CommandLine, ParentImage
+false_positives:
+  - Unlikely — legitimate software rarely copies binaries to temp directories
+tuning_notes: >
+  Expand the query to cover other common masquerade names.
+  Monitor any executable running from temp directories with system binary names.
+testing:
+  command: "copy C:\\Windows\\System32\\cmd.exe C:\\temp\\svchost.exe && C:\\temp\\svchost.exe /c whoami"
+  result: DETECTED
+  fp_rate: Very Low
+status: production
