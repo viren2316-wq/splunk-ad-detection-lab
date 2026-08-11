@@ -1,1 +1,31 @@
 id: DET-025
+name: Suspicious Executable Running from Temp Directory
+description: >
+  Detects execution of binaries from Windows Temp directories, a common
+  indicator of malware staging. Attackers frequently drop and execute
+  payloads from temp directories to avoid detection and simplify cleanup.
+mitre_attack:
+  tactic: Defense Evasion
+  technique_id: T1036
+  technique_name: "Masquerading"
+data_sources:
+  - index: sysmon
+    eventcode: 1
+    sourcetype: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+splunk_query: |
+  index=sysmon EventCode=1 Image="*\\Windows\\Temp\\*.exe"
+  | where NOT (Image IN (
+      "*\\Windows\\Temp\\MpSigStub.exe",
+      "*\\Windows\\Temp\\WindowsUpdate*.exe"))
+  | stats count by Computer, User, Image, CommandLine, ParentImage
+false_positives:
+  - Some legitimate installers extract and run executables from temp
+  - Windows Update temporary executables
+tuning_notes: >
+  Allowlist known legitimate temp executables by Image name.
+  Correlate with network connections from the same process for higher confidence.
+testing:
+  command: "copy C:\\Windows\\System32\\cmd.exe C:\\Windows\\Temp\\notmalware.exe && C:\\Windows\\Temp\\notmalware.exe /c whoami"
+  result: DETECTED
+  fp_rate: Medium
+status: production
