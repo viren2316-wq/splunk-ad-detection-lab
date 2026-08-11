@@ -1,1 +1,32 @@
 id: DET-003
+name: LSASS Process Access
+description: >
+  Detects unauthorized access to the LSASS process, commonly used by
+  attackers to dump credentials from memory using tools like Mimikatz
+  or comsvcs.dll MiniDump.
+mitre_attack:
+  tactic: Credential Access
+  technique_id: T1003.001
+  technique_name: "OS Credential Dumping: LSASS Memory"
+data_sources:
+  - index: sysmon
+    eventcode: 10
+    sourcetype: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+splunk_query: |
+  index=sysmon EventCode=10 TargetImage="*\\lsass.exe"
+  | where NOT (SourceImage IN (
+      "*\\MsMpEng.exe","*\\csrss.exe","*\\wininit.exe",
+      "*\\services.exe","*\\svchost.exe","*\\lsaiso.exe"))
+  | where GrantedAccess IN (
+      "0x1410","0x1010","0x1438","0x143a","0x1418","0x1fffff")
+  | stats count by SourceImage, TargetImage, GrantedAccess, Computer, User
+false_positives:
+  - EDR and AV solutions legitimately access LSASS for monitoring
+tuning_notes: >
+  Allowlist known security tools by SourceImage.
+  Focus on GrantedAccess values associated with credential dumping.
+testing:
+  command: "rundll32.exe C:\\Windows\\System32\\comsvcs.dll MiniDump <pid> lsass.dmp full"
+  result: DETECTED
+  fp_rate: Low
+status: production
