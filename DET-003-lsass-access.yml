@@ -1,0 +1,8 @@
+id: DET-003
+ame: LSASS Process Access\mitre_attack:
+ tactic: Credential Access
+ technique_id: T1003.001
+splunk_query: |
+ indexx=sysmon EventCode=10 TargetImage="*\lsass.exe"
+ | stats count by SourceImage, TargetImage, Computer
+status: production

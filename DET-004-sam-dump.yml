@@ -1,0 +1,9 @@
+id: DET-004
+ame: SAM Registry Dump\mitre_attack:
+ tactic: Credential Access
+ technique_id: T1003.002
+splunk_query: |
+ indexx=sysmon EventCode=1
+ | where match(CommandLine, "(?i)(reg.*(save|report).*(sam|system))")
+ |  stats count by Computer, User, CommandLine
+status: production

@@ -1,0 +1,8 @@
+id: DET-004
+ame: SAM Registry Dump\mitre_attack:
+ tactic: Persistence
+ technique_id: T1053.005
+splunk_query: |
+ index=windows_security EventCode=4698
+ | stats count by Computer, TaskName
+status: production
