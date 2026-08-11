@@ -1,1 +1,28 @@
 id: DET-011
+name: Rundll32 LOLBin Abuse
+description: >
+  Detects abuse of rundll32.exe to execute malicious code by proxying
+  execution through a legitimate Windows binary, bypassing application
+  whitelisting and reducing suspicion.
+mitre_attack:
+  tactic: Defense Evasion
+  technique_id: T1218.011
+  technique_name: "System Binary Proxy Execution: Rundll32"
+data_sources:
+  - index: sysmon
+    eventcode: 1
+    sourcetype: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+splunk_query: |
+  index=sysmon EventCode=1 Image="*\\rundll32.exe"
+  | where match(CommandLine, "(?i)(javascript:|url\.dll|shell32|pcwutl|advpack)")
+  | stats count by Computer, User, CommandLine, ParentImage
+false_positives:
+  - Legitimate Windows components using rundll32 for normal operations
+tuning_notes: >
+  Focus on CommandLine containing javascript:, http, or unusual DLL names.
+  Allowlist known-good rundll32 usage by ParentImage.
+testing:
+  command: "rundll32.exe url.dll,OpenURL http://test.com"
+  result: DETECTED
+  fp_rate: Low
+status: production
