@@ -1,1 +1,30 @@
 id: DET-018
+name: Audit Policy Subcategory Disabled
+description: >
+  Detects modifications to Windows audit policy subcategories that disable
+  security event logging. Attackers disable audit policies to prevent
+  detection and remove forensic evidence of their activities.
+mitre_attack:
+  tactic: Defense Evasion
+  technique_id: T1562.002
+  technique_name: "Impair Defenses: Disable Windows Event Logging"
+data_sources:
+  - index: windows_security
+    eventcode: 4719
+    sourcetype: WinEventLog:Security
+splunk_query: |
+  index=windows_security EventCode=4719
+  | rex field=_raw "Subcategory:\s+(?<Subcategory>[^\r\n]+)"
+  | rex field=_raw "Changes:\s+(?<Changes>[^\r\n]+)"
+  | stats count by SubjectUserName, Subcategory, Changes, Computer
+false_positives:
+  - Authorized administrators modifying audit policies
+  - Group Policy updates changing audit settings
+tuning_notes: >
+  Allowlist known admin accounts performing authorized changes.
+  Alert immediately on any audit policy disable during off-hours.
+testing:
+  command: "auditpol /set /subcategory:Logon /success:disable /failure:disable"
+  result: DETECTED
+  fp_rate: Low
+status: production
