@@ -1,1 +1,29 @@
 id: DET-017
+name: Windows Defender Real-Time Protection Disabled
+description: >
+  Detects disabling of Windows Defender real-time protection via registry
+  modification, commonly performed by attackers to prevent detection of
+  malicious tools and payloads during an attack.
+mitre_attack:
+  tactic: Defense Evasion
+  technique_id: T1562.001
+  technique_name: "Impair Defenses: Disable or Modify Tools"
+data_sources:
+  - index: sysmon
+    eventcode: 13
+    sourcetype: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+splunk_query: |
+  index=sysmon EventCode=13
+  TargetObject="*\\Windows Defender\\Real-Time Protection\\DisableRealtimeMonitoring"
+  | stats count by Computer, Image, TargetObject, Details
+false_positives:
+  - Authorized security teams disabling Defender for testing
+  - Enterprise AV replacement tools disabling Defender
+tuning_notes: >
+  No tuning needed in most environments.
+  Any disabling of real-time protection should be investigated immediately.
+testing:
+  command: "Set-MpPreference -DisableRealtimeMonitoring $true"
+  result: DETECTED
+  fp_rate: Very Low
+status: production
